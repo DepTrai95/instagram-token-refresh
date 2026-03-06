@@ -10,6 +10,7 @@
 
 export default {
 	async fetch(request, env, ctx) {
+		// await sendTokenRefreshEmail(env, "✅ Instagram Token Refresh Worker ausgeführt")
 		return new Response("✅ Instagram Token Refresh Worker ausgeführt");
 	},
 
