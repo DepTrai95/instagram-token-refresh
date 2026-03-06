@@ -137,4 +137,10 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# IDE settings
 .vscode
+
+# Cloudflare Wrangler / local env secrets
+.env
+.dev.vars

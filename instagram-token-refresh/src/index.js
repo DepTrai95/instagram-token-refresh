@@ -10,21 +10,59 @@
 
 export default {
 	async fetch(request, env, ctx) {
-		// just for testing/dev
-		// await scheduled(env);
-		return new Response("✅  Instagram Token Refresh Worker ausgeführt");
+		return new Response("✅ Instagram Token Refresh Worker ausgeführt");
 	},
 
-	async scheduled(event, env, ctx) {
+	async scheduled(event, env) {
+		try {
+			const token = env.INSTAGRAM_TOKEN;
 
-	  const url =
-		"https://graph.instagram.com/refresh_access_token" +
-		"?grant_type=ig_refresh_token" +
-		`&access_token=${env.INSTAGRAM_TOKEN}`;
+			if (!token) {
+				console.log("No token configured.");
+				return;
+			}
 
-	  const res = await fetch(url);
-	  const data = await res.json();
+			const refreshUrl =
+				"https://graph.instagram.com/refresh_access_token" +
+				"?grant_type=ig_refresh_token" +
+				"&access_token=" + token;
 
-	  console.log("Instagram token refresh result:", data);
+			const res = await fetch(refreshUrl);
+			const data = await res.json();
+
+			if (data?.access_token) {
+				console.log("Token refreshed successfully");
+				await sendTokenRefreshEmail(env, "Instagram Token erfolgreich erneuert");
+			} else {
+				console.log("Refresh failed", data);
+			}
+
+		} catch (err) {
+			console.error("Worker error:", err);
+			await sendTokenRefreshEmail(env, "Instagram Worker Error: " + err.message);
+		}
 	}
 };
+
+async function sendTokenRefreshEmail(env, message) {
+	if (!env.POSTMARK_API_KEY) return;
+	const email = env.POSTMARK_EMAIL;
+
+	const res = await fetch("https://api.postmarkapp.com/email", {
+		method: "POST",
+		headers: {
+			"X-Postmark-Server-Token": env.POSTMARK_API_KEY,
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			From: email,
+			To: email,
+			Subject: "Instagram Worker Notification",
+			TextBody: message
+		})
+	});
+
+	if (!res.ok) {
+		console.error("Postmark Mail Fehler:", await res.text());
+	}
+}
